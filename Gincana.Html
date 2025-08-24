@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Sistema de Pontuação EBD</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background:#f7f7f7; }
+  table { border-collapse: collapse; width: 100%; background:white; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background: #eee; }
+  input { width: 50px; text-align: center; }
+  .btn { margin-top:10px; padding:6px 12px; border:0; background:#4CAF50; color:white; border-radius:5px; cursor:pointer; }
+  .btn:hover { background:#45a049; }
+</style>
+</head>
+<body>
+
+<h2>Sistema de Pontuação - EBD</h2>
+
+<table id="pontuacaoTable">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Participação</th>
+      <th>Perguntas</th>
+      <th>Ajudar na EBD</th>
+      <th>Presença</th>
+      <th>Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td contenteditable="true">João</td>
+      <td><input type="number" value="0"></td>
+      <td><input type="number" value="0"></td>
+      <td><input type="number" value="0"></td>
+      <td><input type="number" value="0"></td>
+      <td class="total">0</td>
+    </tr>
+  </tbody>
+</table>
+
+<button class="btn" onclick="addRow()">Adicionar Pessoa</button>
+
+<script>
+const table = document.getElementById("pontuacaoTable").getElementsByTagName("tbody")[0];
+const STORAGE_KEY = "pontuacaoEBD";
+
+// Calcula e atualiza os totais
+function updateTotals() {
+  [...table.rows].forEach(row => {
+    let total = 0;
+    for (let i = 1; i <= 4; i++) {
+      total += Number(row.cells[i].children[0].value);
+    }
+    row.querySelector(".total").textContent = total;
+  });
+  saveData();
+}
+
+// Adiciona nova linha
+function addRow() {
+  const row = table.insertRow();
+  row.innerHTML = `
+    <td contenteditable="true">Novo</td>
+    <td><input type="number" value="0"></td>
+    <td><input type="number" value="0"></td>
+    <td><input type="number" value="0"></td>
+    <td><input type="number" value="0"></td>
+    <td class="total">0</td>
+  `;
+  addListeners(row);
+}
+
+// Adiciona eventos para recalcular ao mudar valores
+function addListeners(row) {
+  for (let i = 1; i <= 4; i++) {
+    row.cells[i].children[0].addEventListener("input", updateTotals);
+  }
+  row.cells[0].addEventListener("input", saveData);
+}
+
+// Salva no localStorage
+function saveData() {
+  const data = [...table.rows].map(row => ({
+    nome: row.cells[0].textContent,
+    participacao: row.cells[1].children[0].value,
+    perguntas: row.cells[2].children[0].value,
+    ajudar: row.cells[3].children[0].value,
+    presenca: row.cells[4].children[0].value,
+  }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+// Carrega do localStorage
+function loadData() {
+  const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  if (data.length > 0) {
+    table.innerHTML = "";
+    data.forEach(item => {
+      const row = table.insertRow();
+      row.innerHTML = `
+        <td contenteditable="true">${item.nome}</td>
+        <td><input type="number" value="${item.participacao}"></td>
+        <td><input type="number" value="${item.perguntas}"></td>
+        <td><input type="number" value="${item.ajudar}"></td>
+        <td><input type="number" value="${item.presenca}"></td>
+        <td class="total">0</td>
+      `;
+      addListeners(row);
+    });
+  }
+  updateTotals();
+}
+
+// Inicializa
+[...table.rows].forEach(addListeners);
+loadData();
+</script>
+
+</body>
+</html>
