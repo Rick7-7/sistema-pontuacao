@@ -5,11 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Pontuação EBD</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    body { font-family: Arial, sans-serif; margin: 20px; background:#f7f7f7; }
+    table { border-collapse: collapse; width: 100%; background:white; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #f4f4f4; }
-    input, button { margin: 5px; padding: 5px; }
+    th { background: #eee; }
+    input { width: 50px; text-align: center; }
+    .btn { margin-top:10px; padding:6px 12px; border:0; background:#4CAF50; color:white; border-radius:5px; cursor:pointer; }
+    .btn:hover { background:#45a049; }
   </style>
 </head>
 <body>
@@ -33,11 +35,12 @@
     <tbody id="tabela"></tbody>
   </table>
 
+  <!-- Firebase + Código -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-    // 🔹 Config Firebase (corrigido)
+    // 🔹 Configuração Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDHLuDeN-HIUq4j-_2IDZr-bxaY5RQqnic",
       authDomain: "pontuacaoebd.firebaseapp.com",
@@ -49,13 +52,14 @@
       measurementId: "G-1NT5QB44HN"
     };
 
-    // 🔹 Inicializar Firebase
+    // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
     const tabela = document.getElementById("tabela");
+    let dados = {};
 
-    // Adicionar participante
+    // 🔹 Adicionar participante
     window.adicionarParticipante = function() {
       const nome = document.getElementById("nome").value.trim();
       if (!nome) return alert("Digite um nome!");
@@ -71,18 +75,23 @@
       document.getElementById("nome").value = "";
     };
 
-    // Atualizar pontuação
-    function atualizarPontuacao(nome, campo) {
-      const participanteRef = ref(db, "participantes/" + nome);
-      update(participanteRef, {
-        [campo]: (dados[nome][campo] || 0) + 1,
-        total: (dados[nome].participacao || 0) + (dados[nome].respostas || 0) + (dados[nome].presenca || 0) + 1
+    // 🔹 Atualizar pontuação
+    window.atualizarPontuacao = function(nome, campo) {
+      const participante = dados[nome];
+      if (!participante) return;
+      
+      const novoValor = (participante[campo] || 0) + 1;
+      const novoTotal = (campo === "participacao" ? novoValor : participante.participacao)
+                      + (campo === "respostas" ? novoValor : participante.respostas)
+                      + (campo === "presenca" ? novoValor : participante.presenca);
+
+      update(ref(db, "participantes/" + nome), {
+        [campo]: novoValor,
+        total: novoTotal
       });
-    }
+    };
 
-    let dados = {};
-
-    // Carregar dados em tempo real
+    // 🔹 Carregar dados em tempo real
     onValue(ref(db, "participantes"), (snapshot) => {
       dados = snapshot.val() || {};
       tabela.innerHTML = "";
