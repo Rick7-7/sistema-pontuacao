@@ -9,11 +9,13 @@
     table { border-collapse: collapse; width: 100%; background:white; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #eee; }
-    input { width: 200px; padding:5px; }
+    input { text-align: center; }
     .btn { margin-top:10px; padding:6px 12px; border:0; background:#4CAF50; color:white; border-radius:5px; cursor:pointer; }
     .btn:hover { background:#45a049; }
-    .btn-del { background:#e53935; color:white; border-radius:5px; padding:4px 8px; cursor:pointer; }
-    .btn-del:hover { background:#c62828; }
+    .btn-danger { background:#e74c3c; }
+    .btn-danger:hover { background:#c0392b; }
+    .btn-edit { background:#f39c12; }
+    .btn-edit:hover { background:#d68910; }
   </style>
 </head>
 <body>
@@ -21,7 +23,7 @@
 
   <div>
     <input type="text" id="nome" placeholder="Nome do participante">
-    <button class="btn" onclick="adicionarParticipante()">Adicionar</button>
+    <button onclick="adicionarParticipante()">Adicionar</button>
   </div>
 
   <table>
@@ -78,15 +80,16 @@
       document.getElementById("nome").value = "";
     };
 
-    // 🔹 Atualizar pontuação
-    window.atualizarPontuacao = function(nome, campo) {
+    // 🔹 Atualizar pontuação (+ ou -)
+    window.atualizarPontuacao = function(nome, campo, delta) {
       const participante = dados[nome];
       if (!participante) return;
       
-      const novoValor = (participante[campo] || 0) + 1;
-      const novoTotal = (campo === "participacao" ? novoValor : participante.participacao)
-                      + (campo === "respostas" ? novoValor : participante.respostas)
-                      + (campo === "presenca" ? novoValor : participante.presenca);
+      const novoValor = Math.max(0, (participante[campo] || 0) + delta);
+      const novoTotal = 
+          (campo === "participacao" ? novoValor : participante.participacao) +
+          (campo === "respostas" ? novoValor : participante.respostas) +
+          (campo === "presenca" ? novoValor : participante.presenca);
 
       update(ref(db, "participantes/" + nome), {
         [campo]: novoValor,
@@ -96,9 +99,26 @@
 
     // 🔹 Excluir participante
     window.excluirParticipante = function(nome) {
-      if (confirm(`Deseja excluir ${nome}?`)) {
+      if (confirm("Deseja realmente excluir " + nome + "?")) {
         remove(ref(db, "participantes/" + nome));
       }
+    };
+
+    // 🔹 Editar nome
+    window.editarNome = function(nomeAntigo) {
+      const novoNome = prompt("Digite o novo nome:", nomeAntigo);
+      if (!novoNome || novoNome === nomeAntigo) return;
+
+      const participante = dados[nomeAntigo];
+      remove(ref(db, "participantes/" + nomeAntigo)); // apaga o antigo
+
+      set(ref(db, "participantes/" + novoNome), { // cria com novo nome
+        nome: novoNome,
+        participacao: participante.participacao,
+        respostas: participante.respostas,
+        presenca: participante.presenca,
+        total: participante.total
+      });
     };
 
     // 🔹 Carregar dados em tempo real
@@ -110,11 +130,26 @@
         const row = `
           <tr>
             <td>${p.nome}</td>
-            <td>${p.participacao} <button onclick="atualizarPontuacao('${p.nome}','participacao')">+</button></td>
-            <td>${p.respostas} <button onclick="atualizarPontuacao('${p.nome}','respostas')">+</button></td>
-            <td>${p.presenca} <button onclick="atualizarPontuacao('${p.nome}','presenca')">+</button></td>
+            <td>
+              ${p.participacao} 
+              <button onclick="atualizarPontuacao('${p.nome}','participacao',1)">+</button>
+              <button onclick="atualizarPontuacao('${p.nome}','participacao',-1)">-</button>
+            </td>
+            <td>
+              ${p.respostas} 
+              <button onclick="atualizarPontuacao('${p.nome}','respostas',1)">+</button>
+              <button onclick="atualizarPontuacao('${p.nome}','respostas',-1)">-</button>
+            </td>
+            <td>
+              ${p.presenca} 
+              <button onclick="atualizarPontuacao('${p.nome}','presenca',1)">+</button>
+              <button onclick="atualizarPontuacao('${p.nome}','presenca',-1)">-</button>
+            </td>
             <td>${p.total}</td>
-            <td><button class="btn-del" onclick="excluirParticipante('${p.nome}')">🗑️ Excluir</button></td>
+            <td>
+              <button class="btn-edit" onclick="editarNome('${p.nome}')">✏️ Editar</button>
+              <button class="btn-danger" onclick="excluirParticipante('${p.nome}')">🗑️ Excluir</button>
+            </td>
           </tr>
         `;
         tabela.innerHTML += row;
