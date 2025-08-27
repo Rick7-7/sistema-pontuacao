@@ -9,9 +9,11 @@
     table { border-collapse: collapse; width: 100%; background:white; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
     th { background: #eee; }
-    input { width: 50px; text-align: center; }
+    input { width: 200px; padding:5px; }
     .btn { margin-top:10px; padding:6px 12px; border:0; background:#4CAF50; color:white; border-radius:5px; cursor:pointer; }
     .btn:hover { background:#45a049; }
+    .btn-del { background:#e53935; color:white; border-radius:5px; padding:4px 8px; cursor:pointer; }
+    .btn-del:hover { background:#c62828; }
   </style>
 </head>
 <body>
@@ -19,7 +21,7 @@
 
   <div>
     <input type="text" id="nome" placeholder="Nome do participante">
-    <button onclick="adicionarParticipante()">Adicionar</button>
+    <button class="btn" onclick="adicionarParticipante()">Adicionar</button>
   </div>
 
   <table>
@@ -30,6 +32,7 @@
         <th>Respostas</th>
         <th>Presença</th>
         <th>Total</th>
+        <th>Ações</th>
       </tr>
     </thead>
     <tbody id="tabela"></tbody>
@@ -38,7 +41,7 @@
   <!-- Firebase + Código -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    import { getDatabase, ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
     // 🔹 Configuração Firebase
     const firebaseConfig = {
@@ -91,6 +94,13 @@
       });
     };
 
+    // 🔹 Excluir participante
+    window.excluirParticipante = function(nome) {
+      if (confirm(`Deseja excluir ${nome}?`)) {
+        remove(ref(db, "participantes/" + nome));
+      }
+    };
+
     // 🔹 Carregar dados em tempo real
     onValue(ref(db, "participantes"), (snapshot) => {
       dados = snapshot.val() || {};
@@ -104,6 +114,7 @@
             <td>${p.respostas} <button onclick="atualizarPontuacao('${p.nome}','respostas')">+</button></td>
             <td>${p.presenca} <button onclick="atualizarPontuacao('${p.nome}','presenca')">+</button></td>
             <td>${p.total}</td>
+            <td><button class="btn-del" onclick="excluirParticipante('${p.nome}')">🗑️ Excluir</button></td>
           </tr>
         `;
         tabela.innerHTML += row;
